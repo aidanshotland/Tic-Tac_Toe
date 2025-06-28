@@ -35,17 +35,24 @@ function createPlayer(name, mark){
 }
 
 const GameController = (function() {
-    const player1 = createPlayer('PLayer 1', 'X');
+    const player1 = createPlayer('Player 1', 'X');
     const player2 = createPlayer('Player 2', '0');
 
     let currentPlayer = player1;
     let isGameOver=false;
+    let winner = null;
+
+    function setPlayerNames(name1,name2){
+        player1.name = name1 || "Player 1";
+        player2.name = name2 || "Player 2";
+        currentPlayer = player1
+    }
 
     function playTurn(index) {
         if (isGameOver) return;
         if(Gameboard.placeMark(index, currentPlayer.mark)){
             if (checkWinner()) {
-                console.log(`${currentPlayer.name} wins!`);
+                winner = currentPlayer;
                 isGameOver = true;
             } else if (Gameboard.getBoard().every(cell => cell !=="")){
                 console.log("It's a tie!");
@@ -74,22 +81,57 @@ const GameController = (function() {
 
     }
 
+    function getWinner(){
+        return winner;
+    }
+
     function resetGame() {
         Gameboard.resetBoard();
         currentPlayer = player1;
         isGameOver = false;
     }
 
+    function getCurrentPlayer() {
+        return currentPlayer;
+    }
+
+    function getIsGameOver() {
+        return isGameOver;
+    }
+
     return {
         playTurn,
-        resetGame
+        resetGame,
+        getIsGameOver,
+        setPlayerNames,
+        getWinner,
+        getCurrentPlayer,
     }
-})()
+})();
 
 
 const DisplayController = (function() {
 
     const gameboardDiv = document.getElementById("gameboard");
+    const messageDiv = document.getElementById("message");
+    const restartBtn = document.getElementById("restart");
+    const startBtn = document.getElementById("startGame");
+
+    const player1Input = document.getElementById("player1Name");
+    const player2Input = document.getElementById("player2Name");
+
+    startBtn.addEventListener("click", () => {
+        const name1 = player1Input.value;
+        const name2 = player2Input.value;
+        GameController.setPlayerNames(name1,name2);
+        GameController.resetGame();
+        render();
+    })
+
+    restartBtn.addEventListener("click", () => {
+        GameController.resetGame();
+        render();
+    })
 
     function render() {
         const board = Gameboard.getBoard();
@@ -99,14 +141,35 @@ const DisplayController = (function() {
             const square = document.createElement("div");
             square.classList.add("square");
             square.textContent=cell;
-            square.addEventListener("click", () => handleClick(index));
-            gameboardDiv.appendChild(square);
+            if (!GameController.getIsGameOver() && cell === ""){
+                square.addEventListener("click", () => handleClick(index))
+            }
+
+            gameboardDiv.appendChild(square)
         })
+
+        updateMessage();
     }
 
     function handleClick(index) {
         GameController.playTurn(index);
         render();
     }
+
+    function updateMessage() {
+        if (GameController.getIsGameOver()){
+            const winner = GameController.getWinner();
+            if (winner){
+                messageDiv.textContent = `${winner.name} wins!`;
+            } else {
+                messageDiv.textContent = "It's a tie!";
+            }
+        } else {
+            messageDiv.textContent= `It's ${GameController.getCurrentPlayer().name}'s turn.`
+        }
+    }
+
     return { render };
 })();
+
+DisplayController.render();
